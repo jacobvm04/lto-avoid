@@ -69,7 +69,7 @@ Now provide a trajectory to optimize. This is just an `(N, 2)` numpy array of `[
 trajectory = np.linspace([1.0, 5.0], [19.0, 5.0], 50)
 ```
 
-Finally, run the optimizer. It adjusts the waypoints to avoid obstacles while staying smooth and close to the original path. Obstacle avoidance is a hard constraint (`sdf(waypoint) >= safety_margin`), not a soft penalty:
+Finally, run the optimizer. It fits a cubic B-spline to the trajectory and optimizes its control points to avoid obstacles while staying smooth and close to the original path. Obstacle avoidance is a hard constraint (`sdf(waypoint) >= safety_margin`), not a soft penalty:
 
 ```python
 result = optimize_trajectory(
@@ -78,6 +78,15 @@ result = optimize_trajectory(
 ```
 
 `result.trajectory` is an `(N, 2)` array of optimized waypoints in the same format as the input. `result.success` indicates whether IPOPT converged, and `result.solve_time_s` gives the wall-clock time.
+
+The `meters_per_ctrl_pt` parameter (default 3.5) controls the smoothness/fidelity trade-off — higher values produce smoother arcs with fewer control points, lower values allow tighter maneuvers:
+
+```python
+# Smoother trajectory with fewer control points
+result = optimize_trajectory(trajectory, grid, sdf=sdf, meters_per_ctrl_pt=5.0)
+# Tighter fit with more control points
+result = optimize_trajectory(trajectory, grid, sdf=sdf, meters_per_ctrl_pt=1.5)
+```
 
 ![Optimized trajectory navigating multiple circular obstacles](artifacts/scenario_multiple_circles.png)
 

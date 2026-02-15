@@ -14,13 +14,13 @@ uv run python -m pytest -v
 
 Use `uv run python -m pytest` (not `uv run pytest`) — the system pytest via pyenv can shadow the venv's.
 
-**Run tests between every change.** The full suite is 53 tests in ~2s. If tests ever become slow or painful to run, fix that immediately — fast tests are load-bearing for this project. Exception: scenario tests using HIL may block waiting for Telegram approval when artifacts change — this is expected and not a performance problem.
+**Run tests between every change.** The full suite is 59 tests in ~3s. If tests ever become slow or painful to run, fix that immediately — fast tests are load-bearing for this project. Exception: scenario tests using HIL may block waiting for Telegram approval when artifacts change — this is expected and not a performance problem.
 
 ### Testing workflow
 
 - **Run the full test suite after every incremental change** — no exceptions. A change isn't done until the tests pass.
 - **Add tests for new or changed behavior.** New functions, new parameters, bug fixes, and behavioral changes all need corresponding test coverage. If you're changing what code does, prove it works with a test.
-- **Don't skip tests to move faster.** The suite runs in ~2s. There is no reason to defer testing. Catching regressions immediately is far cheaper than debugging them later.
+- **Don't skip tests to move faster.** The suite runs in ~3s. There is no reason to defer testing. Catching regressions immediately is far cheaper than debugging them later.
 - **If a test fails, fix the root cause before moving on.** Don't comment out, skip, or weaken assertions to get green. Understand why it failed.
 
 ## Dev dependencies
@@ -42,6 +42,7 @@ CasADi is **isolated to `optimize.py`**. Every other module is pure numpy/scipy.
 
 ## Key design rules
 
+- **B-spline control point optimization.** The optimizer uses M cubic B-spline control points as decision variables instead of N waypoints directly. The spline is evaluated at N dense sample points via basis matrix multiplication (`C @ B.T`) for costs and constraints. This produces inherently smooth trajectories and prevents inter-waypoint collisions. Control point count is derived from trajectory arc length: `M = max(8, round(arc_length / meters_per_ctrl_pt))`, default 3.5m spacing.
 - **Hard constraints, not penalties.** Obstacle avoidance is `sdf(waypoint) >= safety_margin` as an IPOPT constraint. Don't convert this to a soft penalty cost term.
 - **No hand-coded gradients.** CasADi's AD differentiates through the bspline interpolant and all cost terms automatically. There is no `cost.py` module and there shouldn't be one.
 - **Frozen dataclasses.** `Grid` and `OptimizeResult` are `frozen=True`. Functions that modify a grid return a new `Grid` with copied data. Don't mutate.
@@ -69,7 +70,7 @@ The `build_sdf_interpolant` function in `optimize.py` converts the numpy SDF to 
 | `test_grid.py` | Grid creation, coord transforms, obstacles, immutability | <0.1s |
 | `test_sdf.py` | SDF signs, distances, units, sampling | <0.1s |
 | `test_trajectory.py` | Straight lines, resampling, length, smoothness | <0.1s |
-| `test_optimize.py` | Interpolant correctness, optimizer convergence, constraints | <0.5s |
+| `test_optimize.py` | Interpolant correctness, B-spline basis, optimizer convergence, constraints | <0.5s |
 | `test_scenarios.py` | End-to-end scenarios + visual artifacts (via HIL) + speed regression | <2s |
 | `test_types.py` | jaxtyping + beartype shape/dtype rejection and acceptance | <0.2s |
 | `test_hil.py` | Image comparison, perceptual diff tolerance, diff visualization | <0.5s |

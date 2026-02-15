@@ -16,10 +16,6 @@ import numpy as np
 import requests
 from dotenv import load_dotenv, set_key
 
-# Perceptual diff threshold: mean absolute pixel difference per channel.
-# 1/255 ≈ 0.004 — allows for minor rendering jitter.
-_DIFF_THRESHOLD = 1.0 / 255.0
-
 _APPROVAL_WORDS = {"approve", "approved", "yes", "ok", "y", "lgtm", "\U0001f44d"}
 
 
@@ -30,22 +26,17 @@ def _load_png_as_array(data: bytes) -> np.ndarray:
     return imread(io.BytesIO(data), format="png").astype(np.float32)
 
 
-def compare_images(image_a: bytes, image_b: bytes) -> float:
-    """Return the mean absolute pixel difference between two PNG images.
+def compare_images(image_a: bytes, image_b: bytes) -> bool:
+    """Check whether two PNG images are byte-identical.
 
     Args:
         image_a: PNG bytes for the first image.
         image_b: PNG bytes for the second image.
 
     Returns:
-        Mean absolute difference per channel, in [0, 1].
-        Returns 1.0 if shapes differ.
+        True if the images are exactly identical, False otherwise.
     """
-    arr_a = _load_png_as_array(image_a)
-    arr_b = _load_png_as_array(image_b)
-    if arr_a.shape != arr_b.shape:
-        return 1.0
-    return float(np.mean(np.abs(arr_a - arr_b)))
+    return image_a == image_b
 
 
 def make_diff_image(image_a: bytes, image_b: bytes) -> bytes:
@@ -243,8 +234,7 @@ def assert_human_in_the_loop(
     # Compare against existing approved snapshot
     if snapshot_path.exists():
         approved_bytes = snapshot_path.read_bytes()
-        diff = compare_images(approved_bytes, image_bytes)
-        if diff < _DIFF_THRESHOLD:
+        if compare_images(approved_bytes, image_bytes):
             print(f"Snapshot '{name}' unchanged, skipping review")
             return
 

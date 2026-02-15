@@ -50,52 +50,46 @@ class TestSnapshotRoundtrip:
         snapshot_path.write_bytes(image)
 
         loaded = snapshot_path.read_bytes()
-        assert compare_images(image, loaded) == 0.0
+        assert compare_images(image, loaded) is True
 
 
 class TestCompareImages:
-    """Test perceptual image comparison."""
+    """Test exact image comparison."""
 
     def test_compare_identical_images_match(self):
-        """Two identical images should have zero difference."""
+        """Two identical images should match."""
         image = _make_test_png(seed=1)
-        assert compare_images(image, image) == 0.0
+        assert compare_images(image, image) is True
 
     def test_compare_different_images_detect_change(self):
-        """Two different images should have nonzero difference."""
+        """Two different images should not match."""
         image_a = _make_test_png(seed=1)
         image_b = _make_test_png(seed=2)
-        diff = compare_images(image_a, image_b)
-        assert diff > 0.01, f"Expected significant diff, got {diff}"
+        assert compare_images(image_a, image_b) is False
 
-    def test_perceptual_diff_tolerance(self):
-        """A tiny per-pixel perturbation should still be below threshold."""
+    def test_single_pixel_change_detected(self):
+        """Even a single pixel change should be detected."""
         from PIL import Image
 
-        # Create a simple image directly with PIL (no matplotlib re-rendering)
         arr = np.full((50, 50, 3), 128, dtype=np.uint8)
         img = Image.fromarray(arr)
         buf_a = io.BytesIO()
         img.save(buf_a, format="png")
         image_a = buf_a.getvalue()
 
-        # Add 1-level noise (barely perceptible)
         arr_noisy = arr.copy()
-        arr_noisy[10, 10, 0] = 129  # single pixel, single channel, +1
+        arr_noisy[10, 10, 0] = 129
         img_noisy = Image.fromarray(arr_noisy)
         buf_b = io.BytesIO()
         img_noisy.save(buf_b, format="png")
         image_b = buf_b.getvalue()
 
-        diff = compare_images(image_a, image_b)
-        # 1 pixel changed by 1/255 out of 50*50*3 values → negligible
-        assert diff < 1.0 / 255.0, f"Expected diff below threshold, got {diff}"
+        assert compare_images(image_a, image_b) is False
 
-    def test_compare_different_shapes_returns_one(self):
-        """Images with different shapes should return max difference (1.0)."""
+    def test_compare_different_shapes_not_equal(self):
+        """Images with different shapes should not match."""
         from PIL import Image
 
-        # Create two images with genuinely different pixel dimensions
         img_a = Image.fromarray(np.zeros((50, 50, 3), dtype=np.uint8))
         buf_a = io.BytesIO()
         img_a.save(buf_a, format="png")
@@ -104,7 +98,7 @@ class TestCompareImages:
         buf_b = io.BytesIO()
         img_b.save(buf_b, format="png")
 
-        assert compare_images(buf_a.getvalue(), buf_b.getvalue()) == 1.0
+        assert compare_images(buf_a.getvalue(), buf_b.getvalue()) is False
 
 
 class TestDiffImage:
