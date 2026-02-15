@@ -1,15 +1,18 @@
 """Trajectory representation and utilities."""
 
-from __future__ import annotations
-
 import numpy as np
+from beartype import beartype
+from jaxtyping import Float, jaxtyped
+
+from lto_avoid.types import Trajectory
 
 
+@jaxtyped(typechecker=beartype)
 def straight_line_trajectory(
     start: tuple[float, float] | np.ndarray,
     end: tuple[float, float] | np.ndarray,
     n_points: int,
-) -> np.ndarray:
+) -> Trajectory:
     """Create a straight-line trajectory between two points.
 
     Returns:
@@ -18,12 +21,14 @@ def straight_line_trajectory(
     return np.linspace(start, end, n_points, dtype=np.float64)
 
 
-def trajectory_length(traj: np.ndarray) -> float:
+@jaxtyped(typechecker=beartype)
+def trajectory_length(traj: Trajectory) -> float:
     """Total arc length of a trajectory."""
     return float(np.sum(np.linalg.norm(np.diff(traj, axis=0), axis=1)))
 
 
-def resample_trajectory(traj: np.ndarray, n_points: int) -> np.ndarray:
+@jaxtyped(typechecker=beartype)
+def resample_trajectory(traj: Trajectory, n_points: int) -> Float[np.ndarray, "m 2"]:
     """Resample a trajectory to n_points uniformly spaced by arc length.
 
     First and last points are preserved exactly.
@@ -44,7 +49,8 @@ def resample_trajectory(traj: np.ndarray, n_points: int) -> np.ndarray:
     return np.column_stack([x_new, y_new])
 
 
-def trajectory_smoothness(traj: np.ndarray) -> float:
+@jaxtyped(typechecker=beartype)
+def trajectory_smoothness(traj: Trajectory) -> float:
     """Sum of squared second differences — measures trajectory curvature."""
     if len(traj) < 3:
         return 0.0

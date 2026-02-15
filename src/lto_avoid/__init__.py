@@ -14,10 +14,24 @@ from lto_avoid.trajectory import (
     trajectory_length,
     trajectory_smoothness,
 )
+from lto_avoid.types import (
+    Coords,
+    GridArray,
+    Point2D,
+    Points2D,
+    SDFArray,
+    Trajectory,
+)
 
 __all__ = [
+    "Coords",
     "Grid",
+    "GridArray",
     "OptimizeResult",
+    "Point2D",
+    "Points2D",
+    "SDFArray",
+    "Trajectory",
     "add_circular_obstacle",
     "add_rectangular_obstacle",
     "compute_sdf",

@@ -14,7 +14,14 @@ uv run python -m pytest -v
 
 Use `uv run python -m pytest` (not `uv run pytest`) — the system pytest via pyenv can shadow the venv's.
 
-**Run tests between every change.** The full suite is 32 tests in ~1.5s. If tests ever become slow or painful to run, fix that immediately — fast tests are load-bearing for this project.
+**Run tests between every change.** The full suite is 46 tests in ~1.5s. If tests ever become slow or painful to run, fix that immediately — fast tests are load-bearing for this project.
+
+### Testing workflow
+
+- **Run the full test suite after every incremental change** — no exceptions. A change isn't done until the tests pass.
+- **Add tests for new or changed behavior.** New functions, new parameters, bug fixes, and behavioral changes all need corresponding test coverage. If you're changing what code does, prove it works with a test.
+- **Don't skip tests to move faster.** The suite runs in ~1.5s. There is no reason to defer testing. Catching regressions immediately is far cheaper than debugging them later.
+- **If a test fails, fix the root cause before moving on.** Don't comment out, skip, or weaken assertions to get green. Understand why it failed.
 
 ## Dev dependencies
 
@@ -23,10 +30,11 @@ Dev deps live in `[dependency-groups]` in `pyproject.toml`, not `[project.option
 ## Architecture
 
 ```
-grid.py      pure numpy — Grid dataclass, coord transforms, obstacle helpers
-sdf.py       numpy + scipy — occupancy grid → signed distance field
+grid.py        pure numpy — Grid dataclass, coord transforms, obstacle helpers
+sdf.py         numpy + scipy — occupancy grid → signed distance field
 trajectory.py  pure numpy — straight lines, resampling, arc length, smoothness
-optimize.py  casadi — CasADi Opti + IPOPT optimizer
+optimize.py    casadi — CasADi Opti + IPOPT optimizer
+types.py       jaxtyping — shape-checked array type aliases (GridArray, Trajectory, etc.)
 ```
 
 CasADi is **isolated to `optimize.py`**. Every other module is pure numpy/scipy. Don't leak CasADi imports into grid/sdf/trajectory.
@@ -62,6 +70,7 @@ The `build_sdf_interpolant` function in `optimize.py` converts the numpy SDF to 
 | `test_trajectory.py` | Straight lines, resampling, length, smoothness | <0.1s |
 | `test_optimize.py` | Interpolant correctness, optimizer convergence, constraints | <0.5s |
 | `test_scenarios.py` | End-to-end scenarios + visual artifacts + speed regression | <2s |
+| `test_types.py` | jaxtyping + beartype shape/dtype rejection and acceptance | <0.2s |
 
 ### Visual artifacts
 
@@ -73,8 +82,8 @@ Integration tests save PNGs to `artifacts/` (checked into git). These show SDF h
 
 ## Style
 
-- `from __future__ import annotations` at top of source modules
-- Type hints on function signatures
+- **No `from __future__ import annotations`** in source modules — jaxtyping + beartype require real annotations for runtime shape checking
+- Type hints on function signatures using jaxtyping aliases from `types.py` (e.g. `Trajectory`, `SDFArray`, `GridArray`)
 - Docstrings on public functions (Google style: `Args:` / `Returns:`)
 - No comments on obvious code; comments only where the "why" isn't self-evident
 - Don't add features, abstractions, or "improvements" beyond what's asked

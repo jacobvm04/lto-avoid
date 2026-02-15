@@ -1,12 +1,15 @@
 """Occupancy grid representation and coordinate transforms."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 
 import numpy as np
+from beartype import beartype
+from jaxtyping import jaxtyped
+
+from lto_avoid.types import Coords, GridArray, Point2D
 
 
+@jaxtyped(typechecker=beartype)
 @dataclass(frozen=True)
 class Grid:
     """Immutable 2D occupancy grid.
@@ -21,9 +24,9 @@ class Grid:
         Row 0 is at origin[1] (minimum y).
     """
 
-    obstacles: np.ndarray
+    obstacles: GridArray
     resolution: float
-    origin: np.ndarray
+    origin: Point2D
 
     @property
     def height(self) -> int:
@@ -43,6 +46,7 @@ class Grid:
         return (x_min, x_max, y_min, y_max)
 
 
+@jaxtyped(typechecker=beartype)
 def make_empty_grid(
     width: int,
     height: int,
@@ -64,7 +68,8 @@ def make_empty_grid(
     )
 
 
-def world_to_grid(grid: Grid, xy: np.ndarray) -> np.ndarray:
+@jaxtyped(typechecker=beartype)
+def world_to_grid(grid: Grid, xy: Coords) -> Coords:
     """Convert world (x, y) to continuous grid (row, col).
 
     Args:
@@ -80,7 +85,8 @@ def world_to_grid(grid: Grid, xy: np.ndarray) -> np.ndarray:
     return np.stack([row, col], axis=-1)
 
 
-def grid_to_world(grid: Grid, rc: np.ndarray) -> np.ndarray:
+@jaxtyped(typechecker=beartype)
+def grid_to_world(grid: Grid, rc: Coords) -> Coords:
     """Convert grid (row, col) to world (x, y).
 
     Args:
@@ -96,6 +102,7 @@ def grid_to_world(grid: Grid, rc: np.ndarray) -> np.ndarray:
     return np.stack([x, y], axis=-1)
 
 
+@jaxtyped(typechecker=beartype)
 def add_rectangular_obstacle(
     grid: Grid,
     x_min: float,
@@ -120,6 +127,7 @@ def add_rectangular_obstacle(
     return Grid(obstacles=new_obs, resolution=grid.resolution, origin=grid.origin)
 
 
+@jaxtyped(typechecker=beartype)
 def add_circular_obstacle(
     grid: Grid,
     cx: float,

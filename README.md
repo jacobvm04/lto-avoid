@@ -88,3 +88,5 @@ The blue dashed line is the original straight-line trajectory passing through th
 - [NumPy](https://numpy.org/) >= 1.24
 - [SciPy](https://scipy.org/) >= 1.11
 - [CasADi](https://web.casadi.org/) >= 3.6
+- [jaxtyping](https://github.com/patrick-kidger/jaxtyping) >= 0.2.25
+- [beartype](https://github.com/beartype/beartype) >= 0.19

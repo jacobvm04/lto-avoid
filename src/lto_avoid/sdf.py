@@ -1,14 +1,16 @@
 """Signed distance field computation from occupancy grids."""
 
-from __future__ import annotations
-
 import numpy as np
+from beartype import beartype
+from jaxtyping import Float, jaxtyped
 from scipy.ndimage import distance_transform_edt, map_coordinates
 
 from lto_avoid.grid import Grid, world_to_grid
+from lto_avoid.types import Points2D, SDFArray
 
 
-def compute_sdf(grid: Grid) -> np.ndarray:
+@jaxtyped(typechecker=beartype)
+def compute_sdf(grid: Grid) -> SDFArray:
     """Compute a signed distance field from an occupancy grid.
 
     Uses two passes of scipy's Euclidean distance transform.
@@ -24,11 +26,12 @@ def compute_sdf(grid: Grid) -> np.ndarray:
     return dist_free - dist_occ
 
 
+@jaxtyped(typechecker=beartype)
 def sample_sdf(
-    sdf: np.ndarray,
+    sdf: SDFArray,
     grid: Grid,
-    points: np.ndarray,
-) -> np.ndarray:
+    points: Points2D,
+) -> Float[np.ndarray, " n"]:
     """Sample SDF values at world-coordinate points via bilinear interpolation.
 
     This is a numpy/scipy utility for tests and visualization.

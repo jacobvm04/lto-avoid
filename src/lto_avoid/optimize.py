@@ -1,17 +1,19 @@
 """Trajectory optimizer using CasADi Opti + IPOPT."""
 
-from __future__ import annotations
-
 import time
 from dataclasses import dataclass
 
 import casadi
 import numpy as np
+from beartype import beartype
+from jaxtyping import jaxtyped
 
 from lto_avoid.grid import Grid
 from lto_avoid.sdf import compute_sdf
+from lto_avoid.types import SDFArray, Trajectory
 
 
+@jaxtyped(typechecker=beartype)
 @dataclass(frozen=True)
 class OptimizeResult:
     """Result of trajectory optimization.
@@ -25,8 +27,8 @@ class OptimizeResult:
         solve_time_s: Wall-clock solve time in seconds.
     """
 
-    trajectory: np.ndarray
-    original: np.ndarray
+    trajectory: Trajectory
+    original: Trajectory
     cost: float
     success: bool
     n_iterations: int
@@ -60,10 +62,11 @@ def build_sdf_interpolant(sdf: np.ndarray, grid: Grid) -> casadi.Function:
     )
 
 
+@jaxtyped(typechecker=beartype)
 def optimize_trajectory(
-    trajectory: np.ndarray,
+    trajectory: Trajectory,
     grid: Grid,
-    sdf: np.ndarray | None = None,
+    sdf: SDFArray | None = None,
     w_smooth: float = 1.0,
     w_deviation: float = 0.5,
     safety_margin: float = 0.3,
