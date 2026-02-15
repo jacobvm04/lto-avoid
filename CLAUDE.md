@@ -14,13 +14,13 @@ uv run python -m pytest -v
 
 Use `uv run python -m pytest` (not `uv run pytest`) — the system pytest via pyenv can shadow the venv's.
 
-**Run tests between every change.** The full suite is 46 tests in ~1.5s. If tests ever become slow or painful to run, fix that immediately — fast tests are load-bearing for this project.
+**Run tests between every change.** The full suite is 53 tests in ~2s. If tests ever become slow or painful to run, fix that immediately — fast tests are load-bearing for this project. Exception: scenario tests using HIL may block waiting for Telegram approval when artifacts change — this is expected and not a performance problem.
 
 ### Testing workflow
 
 - **Run the full test suite after every incremental change** — no exceptions. A change isn't done until the tests pass.
 - **Add tests for new or changed behavior.** New functions, new parameters, bug fixes, and behavioral changes all need corresponding test coverage. If you're changing what code does, prove it works with a test.
-- **Don't skip tests to move faster.** The suite runs in ~1.5s. There is no reason to defer testing. Catching regressions immediately is far cheaper than debugging them later.
+- **Don't skip tests to move faster.** The suite runs in ~2s. There is no reason to defer testing. Catching regressions immediately is far cheaper than debugging them later.
 - **If a test fails, fix the root cause before moving on.** Don't comment out, skip, or weaken assertions to get green. Understand why it failed.
 
 ## Dev dependencies
@@ -35,6 +35,7 @@ sdf.py         numpy + scipy — occupancy grid → signed distance field
 trajectory.py  pure numpy — straight lines, resampling, arc length, smoothness
 optimize.py    casadi — CasADi Opti + IPOPT optimizer
 types.py       jaxtyping — shape-checked array type aliases (GridArray, Trajectory, etc.)
+hil.py         requests + dotenv — human-in-the-loop snapshot testing via Telegram
 ```
 
 CasADi is **isolated to `optimize.py`**. Every other module is pure numpy/scipy. Don't leak CasADi imports into grid/sdf/trajectory.
@@ -69,12 +70,17 @@ The `build_sdf_interpolant` function in `optimize.py` converts the numpy SDF to 
 | `test_sdf.py` | SDF signs, distances, units, sampling | <0.1s |
 | `test_trajectory.py` | Straight lines, resampling, length, smoothness | <0.1s |
 | `test_optimize.py` | Interpolant correctness, optimizer convergence, constraints | <0.5s |
-| `test_scenarios.py` | End-to-end scenarios + visual artifacts + speed regression | <2s |
+| `test_scenarios.py` | End-to-end scenarios + visual artifacts (via HIL) + speed regression | <2s |
 | `test_types.py` | jaxtyping + beartype shape/dtype rejection and acceptance | <0.2s |
+| `test_hil.py` | Image comparison, perceptual diff tolerance, diff visualization | <0.5s |
 
-### Visual artifacts
+### Visual artifacts & Human-in-the-Loop (HIL) review
 
-Integration tests save PNGs to `artifacts/` (checked into git). These show SDF heatmaps with obstacle contours, original trajectory (blue dashed), and optimized trajectory (green solid). Always visually inspect these after changing optimizer behavior.
+Integration tests generate PNGs and compare them against approved snapshots in `artifacts/` (checked into git) using perceptual diff. If an image is unchanged, the test passes silently. If an image is new or changed, it is sent to a Telegram bot for human approval — the test blocks (up to 5 minutes) until the human approves or rejects with feedback.
+
+**Setup:** Copy `.env.example` to `.env` and set `TELEGRAM_BOT_TOKEN`. On first run, send `/start` to the bot to auto-discover `TELEGRAM_CHAT_ID`. Without a token, the fallback saves images directly without review.
+
+The artifacts show SDF heatmaps with obstacle contours, original trajectory (blue dashed), and optimized trajectory (green solid). Always visually inspect these after changing optimizer behavior.
 
 ### Speed tests
 

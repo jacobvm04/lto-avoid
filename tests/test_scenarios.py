@@ -4,6 +4,7 @@ Each scenario builds a grid with obstacles, creates a straight-line trajectory
 through them, optimizes, then asserts collision-free results and saves a PNG.
 """
 
+import io
 import os
 from pathlib import Path
 
@@ -19,6 +20,7 @@ from lto_avoid.grid import (
     add_rectangular_obstacle,
     make_empty_grid,
 )
+from lto_avoid.hil import assert_human_in_the_loop
 from lto_avoid.optimize import optimize_trajectory
 from lto_avoid.sdf import compute_sdf, sample_sdf
 from lto_avoid.trajectory import straight_line_trajectory
@@ -26,17 +28,15 @@ from lto_avoid.trajectory import straight_line_trajectory
 ARTIFACTS_DIR = Path(__file__).parent.parent / "artifacts"
 
 
-def save_scenario(
-    filename: str,
+def render_scenario(
     grid,
     sdf,
     original,
     optimized,
     safety_margin: float,
     title: str = "",
-):
-    """Save a visualization of the scenario to artifacts/."""
-    ARTIFACTS_DIR.mkdir(exist_ok=True)
+) -> bytes:
+    """Render a scenario visualization and return PNG bytes."""
     fig, ax = plt.subplots(1, 1, figsize=(10, 8))
     extent = [
         grid.world_extent[0],
@@ -75,13 +75,16 @@ def save_scenario(
         label="Optimized",
     )
 
-    ax.set_title(title or filename)
+    ax.set_title(title)
     ax.legend()
     ax.set_aspect("equal")
     ax.set_xlabel("x (meters)")
     ax.set_ylabel("y (meters)")
-    fig.savefig(ARTIFACTS_DIR / filename, dpi=100, bbox_inches="tight")
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", dpi=100, bbox_inches="tight")
     plt.close(fig)
+    buf.seek(0)
+    return buf.read()
 
 
 # --- Scenarios ---
@@ -106,15 +109,10 @@ def test_scenario_single_circle():
     np.testing.assert_allclose(result.trajectory[0], traj[0], atol=1e-5)
     np.testing.assert_allclose(result.trajectory[-1], traj[-1], atol=1e-5)
 
-    save_scenario(
-        "scenario_single_circle.png",
-        g,
-        sdf,
-        traj,
-        result.trajectory,
-        safety_margin,
-        title="Single Circle Obstacle",
+    image_bytes = render_scenario(
+        g, sdf, traj, result.trajectory, safety_margin, title="Single Circle Obstacle"
     )
+    assert_human_in_the_loop("scenario_single_circle.png", image_bytes, ARTIFACTS_DIR)
 
 
 def test_scenario_narrow_corridor():
@@ -135,15 +133,10 @@ def test_scenario_narrow_corridor():
     sdf_vals = sample_sdf(sdf, g, result.trajectory)
     assert np.all(sdf_vals > 0), f"Collision! min SDF = {sdf_vals.min():.4f}"
 
-    save_scenario(
-        "scenario_narrow_corridor.png",
-        g,
-        sdf,
-        traj,
-        result.trajectory,
-        safety_margin,
-        title="Narrow Corridor",
+    image_bytes = render_scenario(
+        g, sdf, traj, result.trajectory, safety_margin, title="Narrow Corridor"
     )
+    assert_human_in_the_loop("scenario_narrow_corridor.png", image_bytes, ARTIFACTS_DIR)
 
 
 def test_scenario_multiple_circles():
@@ -165,14 +158,11 @@ def test_scenario_multiple_circles():
     sdf_vals = sample_sdf(sdf, g, result.trajectory)
     assert np.all(sdf_vals > 0), f"Collision! min SDF = {sdf_vals.min():.4f}"
 
-    save_scenario(
-        "scenario_multiple_circles.png",
-        g,
-        sdf,
-        traj,
-        result.trajectory,
-        safety_margin,
-        title="Multiple Circular Obstacles",
+    image_bytes = render_scenario(
+        g, sdf, traj, result.trajectory, safety_margin, title="Multiple Circular Obstacles"
+    )
+    assert_human_in_the_loop(
+        "scenario_multiple_circles.png", image_bytes, ARTIFACTS_DIR
     )
 
 
