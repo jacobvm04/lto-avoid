@@ -65,7 +65,7 @@ The `build_sdf_interpolant` function in `optimize.py` converts the numpy SDF to 
 
 ### Visual artifacts
 
-Integration tests save PNGs to `artifacts/` (gitignored). These show SDF heatmaps with obstacle contours, original trajectory (blue dashed), and optimized trajectory (green solid). Always visually inspect these after changing optimizer behavior.
+Integration tests save PNGs to `artifacts/` (checked into git). These show SDF heatmaps with obstacle contours, original trajectory (blue dashed), and optimized trajectory (green solid). Always visually inspect these after changing optimizer behavior.
 
 ### Speed tests
 
